@@ -1,0 +1,84 @@
+name: Archivarius Kaggle ingestion
+
+on:
+  workflow_dispatch:
+    inputs:
+      dataset:
+        description: Kaggle dataset ref owner/dataset
+        required: true
+        type: string
+      version:
+        description: Pinned Kaggle dataset version
+        required: true
+        type: string
+      gcs_bucket:
+        description: Destination GCS bucket
+        required: true
+        type: string
+      gcs_prefix:
+        description: Destination prefix
+        required: false
+        default: raw/kaggle
+        type: string
+  schedule:
+    - cron: '17 2 * * 1'
+
+permissions:
+  contents: read
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    env:
+      DATASET: ${{ inputs.dataset || vars.ARCHIVARIUS_KAGGLE_DATASET }}
+      VERSION: ${{ inputs.version || vars.ARCHIVARIUS_KAGGLE_VERSION }}
+      GCS_BUCKET: ${{ inputs.gcs_bucket || vars.ARCHIVARIUS_GCS_BUCKET }}
+      GCS_PREFIX: ${{ inputs.gcs_prefix || vars.ARCHIVARIUS_GCS_PREFIX || 'raw/kaggle' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install ingestion dependencies
+        run: python -m pip install --upgrade kaggle google-cloud-storage
+
+      - name: Download dataset
+        env:
+          KAGGLE_API_TOKEN: ${{ secrets.KAGGLE_API_TOKEN }}
+        run: |
+          test -n "$DATASET"
+          test -n "$VERSION"
+          python archivarius/ingestion/kaggle/download.py \
+            --dataset "$DATASET" \
+            --version "$VERSION" \
+            --out data/raw \
+            --manifest manifests/kaggle.json
+
+      - name: Validate files
+        run: |
+          python archivarius/ingestion/kaggle/validate.py \
+            --manifest manifests/kaggle.json \
+            --root data/raw
+
+      - name: Upload immutable artifacts to GCS
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS_JSON: ${{ secrets.GCP_SERVICE_ACCOUNT_JSON }}
+        run: |
+          printf '%s' "$GOOGLE_APPLICATION_CREDENTIALS_JSON" > "$RUNNER_TEMP/gcp.json"
+          export GOOGLE_APPLICATION_CREDENTIALS="$RUNNER_TEMP/gcp.json"
+          python archivarius/ingestion/kaggle/upload_gcs.py \
+            --manifest manifests/kaggle.json \
+            --root data/raw \
+            --bucket "$GCS_BUCKET" \
+            --prefix "$GCS_PREFIX"
+
+      - name: Upload manifest artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: archivarius-kaggle-manifest-${{ github.run_id }}
+          path: manifests/kaggle.json
+          retention-days: 30
