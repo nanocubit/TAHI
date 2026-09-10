@@ -15,8 +15,8 @@ int main() {
     csv << "id,value\n1,10\n2,20\n3,30\n";
     csv.close();
 
-    fastlanes::Connection connection;
-    connection.reset().read_csv(input_dir).to_fls(fls_path);
+    auto csv_reader = fastlanes::read_csv(input_dir);
+    csv_reader.to_fls(fls_path);
 
     fastlanes::Connection reader;
     reader.reset().read_fls(fls_path).to_csv(output_csv);
