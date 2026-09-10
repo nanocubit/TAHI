@@ -33,12 +33,14 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+      - name: Install project and test dependencies
+        run: python -m pip install -e . pytest
       - name: Run tests
-        run: python -m pip install pytest && PYTHONPATH=. pytest
+        run: python -m pytest
       - name: Run benchmark
         run: |
           mkdir -p benchmark-results
-          PYTHONPATH=. python benchmarks/tahi_x_baseline.py \
+          python -m benchmarks.tahi_x_baseline \
             --objects '${{ inputs.objects }}' \
             --queries '${{ inputs.queries }}' \
             --seed '${{ inputs.seed }}' \
