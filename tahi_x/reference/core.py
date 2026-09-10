@@ -103,13 +103,27 @@ class ExactQuery:
         self.postings = postings
         self.canonical = canonical
 
+    def _cell_range(self, minimum: Sequence[float], maximum: Sequence[float]) -> tuple[CellAddress, CellAddress]:
+        lower, upper = [], []
+        for query_lo, query_hi, domain_lo, domain_hi, size in zip(minimum, maximum, self.snapshot.minimum, self.snapshot.maximum, self.snapshot.grid):
+            if query_hi < domain_lo or query_lo > domain_hi:
+                return CellAddress((1,)), CellAddress((0,))
+            clipped_lo = max(query_lo, domain_lo)
+            clipped_hi = min(query_hi, domain_hi)
+            lower.append(0 if clipped_lo <= domain_lo else min(size - 1, int((clipped_lo - domain_lo) / (domain_hi - domain_lo) * size)))
+            upper.append(size - 1 if clipped_hi >= domain_hi else min(size - 1, int((clipped_hi - domain_lo) / (domain_hi - domain_lo) * size)))
+        return CellAddress(tuple(lower)), CellAddress(tuple(upper))
+
     def range(self, minimum: Sequence[float], maximum: Sequence[float]) -> list[int]:
         if len(minimum) != self.snapshot.dimensions or len(maximum) != self.snapshot.dimensions:
             raise ValueError("query dimension mismatch")
+        if any(not isfinite(float(value)) for value in tuple(minimum) + tuple(maximum)):
+            raise ValueError("query bounds must be finite")
         if any(lo > hi for lo, hi in zip(minimum, maximum)):
             return []
+        lower, upper = self._cell_range(minimum, maximum)
         candidate_ids = set()
         for key, offset, count in zip(self.directory.keys, self.directory.offsets, self.directory.counts):
-            if all(lo <= cell <= hi for cell, lo, hi in zip(key.values, minimum, maximum)):
+            if all(lo <= cell <= hi for cell, lo, hi in zip(key.values, lower.values, upper.values)):
                 candidate_ids.update(self.postings.object_ids[offset:offset + count])
         return sorted(object_id for object_id in candidate_ids if all(lo <= self.canonical[object_id].values[index] <= hi for index, (lo, hi) in enumerate(zip(minimum, maximum))))

@@ -10,6 +10,13 @@ def test_archive_query_matches_bruteforce():
     assert result == expected == [10, 20]
 
 
+def test_query_outside_domain_is_empty():
+    objects = {1: (0.2, 0.2)}
+    archivist = Archivist((0.0, 0.0), (1.0, 1.0), (4, 4))
+    snapshot, directory, postings, canonical = archivist.build(objects)
+    assert ExactQuery(snapshot, directory, postings, canonical).range((2.0, 2.0), (3.0, 3.0)) == []
+
+
 def test_postings_are_contiguous_and_deterministic():
     objects = {3: (0.2, 0.2), 1: (0.2, 0.2), 2: (0.8, 0.8)}
     archivist = Archivist((0.0, 0.0), (1.0, 1.0), (2, 2))

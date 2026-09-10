@@ -38,7 +38,7 @@ A snapshot records dimension, domain bounds, grid shape, object count, occupied-
 
 ## Query semantics
 
-`QUERY(predicate)` computes the conservative range of cells intersecting the predicate, retrieves postings for occupied cells in that range, deduplicates candidate IDs, and applies the exact predicate to canonical coordinates. False positives are permitted before verification; false negatives are forbidden.
+`QUERY(predicate)` first maps each numeric query bound into a conservative cell-address interval using the snapshot domain and grid. It retrieves postings from occupied cells in that interval, then applies the exact predicate to canonical coordinates. Cell selection may produce false-positive candidates but must not create false negatives.
 
 The reference invariant is:
 
