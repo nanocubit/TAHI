@@ -1,0 +1,17 @@
+{
+  "benchmark": "TAHI-X10.2 BVH",
+  "version": "10.2.0",
+  "configuration": {"n_objects": 10000000, "dimensions": 5, "grid": 32, "cells": 8647640, "build_seconds": 22.14},
+  "correctness": {"queries_checked": 180, "false_negatives": 0, "false_positives": 0},
+  "results": [
+    {"selectivity": 0.001, "shape": "iso", "mean_ms": 5.04, "median_ms": 4.96, "p95_ms": 6.35, "mean_count": 3273.4, "errors": 0},
+    {"selectivity": 0.001, "shape": "axis0", "mean_ms": 3.23, "median_ms": 3.35, "p95_ms": 3.96, "mean_count": 3277.8, "errors": 0},
+    {"selectivity": 0.001, "shape": "aniso", "mean_ms": 2.51, "median_ms": 2.46, "p95_ms": 3.26, "mean_count": 3275.2, "errors": 0},
+    {"selectivity": 0.01, "shape": "iso", "mean_ms": 7.86, "median_ms": 7.59, "p95_ms": 11.73, "mean_count": 32781.0, "errors": 0},
+    {"selectivity": 0.01, "shape": "axis0", "mean_ms": 6.22, "median_ms": 5.88, "p95_ms": 8.68, "mean_count": 29940.1, "errors": 0},
+    {"selectivity": 0.01, "shape": "aniso", "mean_ms": 5.54, "median_ms": 5.28, "p95_ms": 7.56, "mean_count": 32766.2, "errors": 0},
+    {"selectivity": 0.1, "shape": "iso", "mean_ms": 32.15, "median_ms": 28.35, "p95_ms": 43.19, "mean_count": 327653.3, "errors": 0},
+    {"selectivity": 0.1, "shape": "axis0", "mean_ms": 22.28, "median_ms": 20.68, "p95_ms": 36.30, "mean_count": 215209.0, "errors": 0},
+    {"selectivity": 0.1, "shape": "aniso", "mean_ms": 30.83, "median_ms": 30.95, "p95_ms": 35.84, "mean_count": 327620.7, "errors": 0}
+  ]
+}
