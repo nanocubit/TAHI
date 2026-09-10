@@ -1,22 +1,22 @@
-name: TAHI-X reproducible baseline
+name: TAHI-X reproducible benchmark matrix
 
 on:
   workflow_dispatch:
     inputs:
       objects:
-        description: Object count
+        description: Optional single object count override
         required: false
-        default: '100000'
+        default: ''
         type: string
       queries:
-        description: Query count
+        description: Queries per run
         required: false
         default: '100'
         type: string
       seed:
-        description: Random seed
+        description: Optional single seed override
         required: false
-        default: '42'
+        default: ''
         type: string
 
 permissions:
@@ -26,7 +26,14 @@ env:
   PYTHONPATH: .
 
 jobs:
-  benchmark:
+  matrix:
+    strategy:
+      fail-fast: false
+      matrix:
+        objects: [10000, 100000, 1000000]
+        grid: [8, 16, 32]
+        seed: [1, 2, 3]
+        query_width: [narrow, medium, wide]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -38,15 +45,20 @@ jobs:
       - name: Run tests
         run: python -m pytest
       - name: Run benchmark
+        env:
+          OBJECTS: ${{ inputs.objects || matrix.objects }}
+          SEED: ${{ inputs.seed || matrix.seed }}
         run: |
           mkdir -p benchmark-results
           python -m benchmarks.tahi_x_baseline \
-            --objects '${{ inputs.objects }}' \
-            --queries '${{ inputs.queries }}' \
-            --seed '${{ inputs.seed }}' \
-            --output benchmark-results/tahi-x-${{ inputs.objects }}-${{ inputs.seed }}.json
+            --objects "$OBJECTS" \
+            --grid '${{ matrix.grid }}' \
+            --queries '${{ inputs.queries || '100' }}' \
+            --seed "$SEED" \
+            --query-width '${{ matrix.query_width }}' \
+            --output "benchmark-results/tahi-x-${OBJECTS}-g${{ matrix.grid }}-s${SEED}-${{ matrix.query_width }}.json"
       - uses: actions/upload-artifact@v4
         with:
-          name: tahi-x-benchmark-${{ github.run_id }}
+          name: tahi-x-benchmark-${{ github.run_id }}-${{ matrix.objects }}-${{ matrix.grid }}-${{ matrix.seed }}-${{ matrix.query_width }}
           path: benchmark-results/
           retention-days: 30
