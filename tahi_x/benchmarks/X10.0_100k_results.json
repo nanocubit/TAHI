@@ -1,0 +1,18 @@
+{
+  "benchmark": "TAHI-X10.0 Production Release",
+  "version": "10.0.0",
+  "configuration": {
+    "n_objects": 100000,
+    "grid": 32,
+    "dimensions": 5,
+    "n_queries": 20
+  },
+  "results": {
+    "uniform/isotropic": {"mean_ms": 1.251, "median_ms": 1.237, "p95_ms": 1.524, "throughput_qps": 799.4, "correct": true},
+    "uniform/axis0_tight": {"mean_ms": 0.697, "median_ms": 0.701, "p95_ms": 0.861, "throughput_qps": 1434.1, "correct": true},
+    "clustered/anisotropic": {"mean_ms": 0.419, "median_ms": 0.327, "p95_ms": 0.788, "throughput_qps": 2384.5, "correct": true},
+    "skewed/isotropic": {"mean_ms": 0.856, "median_ms": 0.853, "p95_ms": 1.363, "throughput_qps": 1168.6, "correct": true},
+    "boundary/anisotropic": {"mean_ms": 0.825, "median_ms": 0.794, "p95_ms": 0.978, "throughput_qps": 1212.7, "correct": true}
+  },
+  "correctness": {"false_negatives": 0, "false_positives": 0}
+}
