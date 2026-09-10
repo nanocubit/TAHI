@@ -1,0 +1,21 @@
+name: TAHI-X optional FastLanes probe
+
+on:
+  workflow_dispatch:
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: cwida/FastLanes
+          path: external/FastLanes
+          ref: main
+      - name: Configure probe
+        run: cmake -S native/fastlanes_probe -B build/fastlanes -DFASTLANES_DIR=$GITHUB_WORKSPACE/external/FastLanes
+      - name: Build probe
+        run: cmake --build build/fastlanes
+      - name: Run probe
+        run: ./build/fastlanes/tahi_fastlanes_probe
