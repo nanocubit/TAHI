@@ -1,0 +1,47 @@
+name: TAHI-X reproducible baseline
+
+on:
+  workflow_dispatch:
+    inputs:
+      objects:
+        description: Object count
+        required: false
+        default: '100000'
+        type: string
+      queries:
+        description: Query count
+        required: false
+        default: '100'
+        type: string
+      seed:
+        description: Random seed
+        required: false
+        default: '42'
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  benchmark:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Run tests
+        run: python -m pip install pytest && pytest
+      - name: Run benchmark
+        run: |
+          mkdir -p benchmark-results
+          python benchmarks/tahi_x_baseline.py \
+            --objects '${{ inputs.objects }}' \
+            --queries '${{ inputs.queries }}' \
+            --seed '${{ inputs.seed }}' \
+            --output benchmark-results/tahi-x-${{ inputs.objects }}-${{ inputs.seed }}.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tahi-x-benchmark-${{ github.run_id }}
+          path: benchmark-results/
+          retention-days: 30
