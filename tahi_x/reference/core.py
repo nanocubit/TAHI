@@ -1,6 +1,7 @@
 """Minimal deterministic TAHI-X spatial archive reference model."""
 from __future__ import annotations
 
+from bisect import bisect_left, bisect_right
 from dataclasses import dataclass
 from math import isfinite
 from typing import Mapping, Sequence
@@ -36,12 +37,30 @@ class CellDirectory:
     keys: tuple[CellAddress, ...]
     offsets: tuple[int, ...]
     counts: tuple[int, ...]
+    packed_keys: tuple[int, ...] = ()
+    strides: tuple[int, ...] = ()
 
     def __post_init__(self) -> None:
         if len(self.keys) != len(self.offsets) or len(self.keys) != len(self.counts):
             raise ValueError("directory arrays must have equal length")
         if any(offset < 0 or count < 0 for offset, count in zip(self.offsets, self.counts)):
             raise ValueError("offsets and counts must be non-negative")
+        if self.packed_keys and len(self.packed_keys) != len(self.keys):
+            raise ValueError("packed keys must match directory length")
+
+    def key(self, address: CellAddress) -> int:
+        if not self.strides:
+            raise ValueError("directory has no packing strides")
+        return sum(value * stride for value, stride in zip(address.values, self.strides))
+
+    def posting_span(self, address: CellAddress) -> tuple[int, int] | None:
+        if not self.packed_keys:
+            return None
+        packed = self.key(address)
+        index = bisect_left(self.packed_keys, packed)
+        if index >= len(self.packed_keys) or self.packed_keys[index] != packed:
+            return None
+        return self.offsets[index], self.counts[index]
 
 
 @dataclass(frozen=True)
@@ -84,6 +103,12 @@ class Archivist:
             canonical[object_id] = coordinate
             records.append((self.cell_address(coordinate), object_id))
         records.sort()
+        strides = []
+        stride = 1
+        for size in reversed(self.grid):
+            strides.append(stride)
+            stride *= size
+        strides.reverse()
         keys, offsets, counts, postings = [], [], [], []
         for cell, object_id in records:
             if not keys or keys[-1] != cell:
@@ -92,8 +117,10 @@ class Archivist:
                 counts.append(0)
             postings.append(object_id)
             counts[-1] += 1
+        packed_keys = tuple(sum(value * stride for value, stride in zip(key.values, strides)) for key in keys)
         snapshot = Snapshot(len(self.grid), self.minimum, self.maximum, self.grid, len(canonical), len(keys))
-        return snapshot, CellDirectory(tuple(keys), tuple(offsets), tuple(counts)), PostingStore(tuple(postings)), canonical
+        directory = CellDirectory(tuple(keys), tuple(offsets), tuple(counts), packed_keys, tuple(strides))
+        return snapshot, directory, PostingStore(tuple(postings)), canonical
 
 
 class ExactQuery:
@@ -102,6 +129,7 @@ class ExactQuery:
         self.directory = directory
         self.postings = postings
         self.canonical = canonical
+        self.last_stats = {"retrieved_postings": 0, "exact_checks": 0, "results": 0}
 
     def _cell_range(self, minimum: Sequence[float], maximum: Sequence[float]) -> tuple[CellAddress, CellAddress]:
         lower, upper = [], []
@@ -120,10 +148,19 @@ class ExactQuery:
         if any(not isfinite(float(value)) for value in tuple(minimum) + tuple(maximum)):
             raise ValueError("query bounds must be finite")
         if any(lo > hi for lo, hi in zip(minimum, maximum)):
+            self.last_stats = {"retrieved_postings": 0, "exact_checks": 0, "results": 0}
             return []
         lower, upper = self._cell_range(minimum, maximum)
         candidate_ids = set()
-        for key, offset, count in zip(self.directory.keys, self.directory.offsets, self.directory.counts):
+        retrieved = 0
+        left = bisect_left(self.directory.packed_keys, self.directory.key(lower))
+        right = bisect_right(self.directory.packed_keys, self.directory.key(upper))
+        for key_index in range(left, right):
+            key = self.directory.keys[key_index]
             if all(lo <= cell <= hi for cell, lo, hi in zip(key.values, lower.values, upper.values)):
+                offset, count = self.directory.offsets[key_index], self.directory.counts[key_index]
                 candidate_ids.update(self.postings.object_ids[offset:offset + count])
-        return sorted(object_id for object_id in candidate_ids if all(lo <= self.canonical[object_id].values[index] <= hi for index, (lo, hi) in enumerate(zip(minimum, maximum))))
+                retrieved += count
+        result = sorted(object_id for object_id in candidate_ids if all(lo <= self.canonical[object_id].values[index] <= hi for index, (lo, hi) in enumerate(zip(minimum, maximum))))
+        self.last_stats = {"retrieved_postings": retrieved, "exact_checks": len(candidate_ids), "results": len(result)}
+        return result

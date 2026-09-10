@@ -6,8 +6,17 @@ def test_archive_query_matches_bruteforce():
     archivist = Archivist((0.0, 0.0), (1.0, 1.0), (4, 4))
     snapshot, directory, postings, canonical = archivist.build(objects)
     result = ExactQuery(snapshot, directory, postings, canonical).range((0.0, 0.0), (0.5, 0.5))
-    expected = sorted(object_id for object_id, point in objects.items() if all(lo <= value <= hi for value, lo, hi in zip(point, (0.0, 0.0), (0.5, 0.5))))
-    assert result == expected == [10, 20]
+    assert result == [10, 20]
+
+
+def test_sparse_directory_lookup_stats():
+    objects = {1: (0.1, 0.1), 2: (0.9, 0.9)}
+    archivist = Archivist((0.0, 0.0), (1.0, 1.0), (4, 4))
+    snapshot, directory, postings, canonical = archivist.build(objects)
+    engine = ExactQuery(snapshot, directory, postings, canonical)
+    assert engine.range((0.0, 0.0), (0.2, 0.2)) == [1]
+    assert engine.last_stats["retrieved_postings"] == 1
+    assert engine.last_stats["exact_checks"] == 1
 
 
 def test_query_outside_domain_is_empty():

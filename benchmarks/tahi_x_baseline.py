@@ -45,7 +45,8 @@ def main() -> None:
 
     query_engine = ExactQuery(snapshot, directory, postings, canonical)
     tahi_times, brute_times = [], []
-    candidate_ratios, false_negatives, false_positives = [], 0, 0
+    candidate_ratios, amplification = [], []
+    false_negatives, false_positives = 0, 0
     for _ in range(args.queries):
         lo = tuple(rng.random() * 0.8 for _ in range(args.dimensions))
         width = tuple(rng.random() * 0.2 for _ in range(args.dimensions))
@@ -53,13 +54,15 @@ def main() -> None:
         start = time.perf_counter()
         result = query_engine.range(lo, hi)
         tahi_times.append((time.perf_counter() - start) * 1000)
+        stats = query_engine.last_stats
+        candidate_ratios.append(stats["retrieved_postings"] / max(1, args.objects))
+        amplification.append(stats["exact_checks"] / max(1, stats["results"]))
         start = time.perf_counter()
         expected = sorted(object_id for object_id, point in objects.items() if all(low <= value <= high for value, low, high in zip(point, lo, hi)))
         brute_times.append((time.perf_counter() - start) * 1000)
         result_set, expected_set = set(result), set(expected)
         false_negatives += len(expected_set - result_set)
         false_positives += len(result_set - expected_set)
-        candidate_ratios.append(len(result) / max(1, len(objects)))
 
     report = {
         "benchmark": "tahi-x-reference-v0.1",
@@ -73,6 +76,7 @@ def main() -> None:
         "tahi_ms": {"mean": statistics.mean(tahi_times), "p50": percentile(tahi_times, 0.50), "p95": percentile(tahi_times, 0.95), "p99": percentile(tahi_times, 0.99)},
         "brute_ms": {"mean": statistics.mean(brute_times), "p50": percentile(brute_times, 0.50), "p95": percentile(brute_times, 0.95), "p99": percentile(brute_times, 0.99)},
         "candidate_ratio_mean": statistics.mean(candidate_ratios),
+        "candidate_amplification_mean": statistics.mean(amplification),
         "false_negatives": false_negatives,
         "false_positives": false_positives,
         "peak_tracemalloc_bytes": peak_bytes,
