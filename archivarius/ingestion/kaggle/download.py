@@ -6,7 +6,7 @@ import os
 import subprocess
 from pathlib import Path
 
-from manifest import build_manifest, write_manifest
+from .manifest import build_manifest, write_manifest
 
 
 def main() -> None:

@@ -6,7 +6,7 @@ from archivarius.ingestion.kaggle.manifest import build_manifest, sha256_file
 def test_sha256_file(tmp_path: Path):
     path = tmp_path / "sample.txt"
     path.write_bytes(b"archivarius")
-    assert sha256_file(path) == "7f5d5e4f7b9db6f4e6d2c7b2c0e4e1d5a1bb2d2c6e6b2f5f6d5b8a7c7f8d0e8"
+    assert sha256_file(path) == "88775190664d3d6a6debb2a4d060b6ae1986078b0a7855c38f6e988d57eee217"
 
 
 def test_build_manifest_records_files(tmp_path: Path):
