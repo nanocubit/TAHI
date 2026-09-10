@@ -23,7 +23,7 @@ jobs:
         with:
           repository: cwida/FastLanes
           path: external/FastLanes
-          ref: 8d3f4f5e8b5a4a3c2d1e0f9a8b7c6d5e4f3a2b1c
+          ref: 6c2e8df38519b479a1e3d5496b765b40538de52d
       - name: Configure probe
         run: cmake -S native/fastlanes_probe -B build/fastlanes -DFASTLANES_DIR=$GITHUB_WORKSPACE/external/FastLanes
       - name: Build probe
