@@ -24,10 +24,12 @@ jobs:
           repository: cwida/FastLanes
           path: external/FastLanes
           ref: main
+      - name: Select Clang
+        run: |
+          echo "CC=clang" >> "$GITHUB_ENV"
+          echo "CXX=clang++" >> "$GITHUB_ENV"
       - name: Configure probe
-        run: cmake -S native/fastlanes_probe -B build/fastlanes -DFASTLANES_DIR=$GITHUB_WORKSPACE/external/FastLanes --trace-expand
-      - name: List CMake targets
-        run: cmake --build build/fastlanes --target help
+        run: cmake -S native/fastlanes_probe -B build/fastlanes -DFASTLANES_DIR=$GITHUB_WORKSPACE/external/FastLanes
       - name: Build probe
         run: cmake --build build/fastlanes --verbose
       - name: Run probe
