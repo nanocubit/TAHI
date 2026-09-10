@@ -8,6 +8,8 @@ if(NOT DEFINED FASTLANES_DIR)
   message(FATAL_ERROR "FASTLANES_DIR must point to a FastLanes checkout")
 endif()
 
+add_subdirectory("${FASTLANES_DIR}" "${CMAKE_BINARY_DIR}/fastlanes" EXCLUDE_FROM_ALL)
+
 add_executable(tahi_fastlanes_probe main.cpp)
-target_include_directories(tahi_fastlanes_probe PRIVATE "${FASTLANES_DIR}/include")
+target_link_libraries(tahi_fastlanes_probe PRIVATE fastlanes)
 target_compile_options(tahi_fastlanes_probe PRIVATE -Wall -Wextra -Wpedantic)
